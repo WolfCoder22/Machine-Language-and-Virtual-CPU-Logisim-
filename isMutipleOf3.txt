@@ -1,0 +1,100 @@
+.pos 0  #start
+
+#put binput address in eax
+irmovl input, %eax
+
+#put byte 0 in ebx
+irmovl $0x000000FF, %ebx
+mrmovl (%eax), %edx
+andl %edx, %ebx
+	
+#Error if non BCD digit
+irmovl $0xFFFFFFF7, %edx
+addl %ebx, %edx
+jg ERROR
+
+#move byte 0 to %ecx
+rrmovl %ebx, %ecx
+	
+#get byte 1
+irmovl $0x000000FF, %ebx
+mrmovl 1(%eax), %edx
+andl %edx, %ebx
+
+#Error if non BCD digit
+irmovl $0xFFFFFFF7, %edx
+addl %ebx, %edx
+jg ERROR
+
+#add B1 to B0 in %ecx
+addl %ebx, %ecx
+	
+#put byte 2 into ebx
+irmovl $0x000000FF, %ebx
+mrmovl 2(%eax), %edx
+andl %edx, %ebx
+
+#Error if non BCD digit
+irmovl $0xFFFFFFF7, %edx
+addl %ebx, %edx
+jg ERROR
+
+#add B2 to B0 and B1 in %ecx
+addl %ebx, %ecx
+
+	
+#put byte 3 into ebx
+irmovl $0x000000FF, %ebx
+mrmovl 3(%eax), %edx
+andl %edx, %ebx
+
+#Error if non BCD digit
+irmovl $0xFFFFFFF7, %edx
+addl %ebx, %edx
+jg ERROR
+
+#add B3 to B0, B1, and B2 in %ecx
+addl %ebx, %ecx
+
+
+#See if it’s a multiple of 3 by adding -3 until a flag
+ADDNEG3:
+	irmovl $0xFFFFFFFD, %edx
+	irmovl 0x0, %ebx
+	addl %ebx, %ecx
+	je ONE
+	addl %edx, %ecx
+	jl ZERO #jump to the output 0
+	jmp ADDNEG3
+
+STOP:
+	halt
+
+ONE: #send byte 1 to output if mutiple of 3
+	irmovl 0x00000001, %eax
+	rmmovl %eax, output
+	jmp STOP
+
+ZERO:#send byte 0 to output if mutiple of 3
+	irmovl 0x0, %eax
+	rmmovl %eax, output
+	jmp STOP
+
+ERROR:#send byte 0 to output if mutiple of 3
+	irmovl 0x0000000E, %eax
+	rmmovl %eax, output
+	jmp STOP
+
+#our 2 targets
+.pos 0x300
+input: 	#asking about the decimal number 1234
+		.byte 0x04
+		.byte 0x03
+		.byte 0x02
+		.byte 0x01
+
+output: #either 0, 1, or E
+	.long 0x00000000
+
+
+
